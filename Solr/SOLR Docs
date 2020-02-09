@@ -1,0 +1,174 @@
+Solr - AEM Documentation:
+SETTING UP SOLR:
+Environment Compatibility:
+	The Solr Version that is supported for AEM is Solr 5.5.5. Download Link is below
+https://archive.apache.org/dist/lucene/solr/5.5.5/solr-5.5.5.tgz
+	Java - 1.8.x
+Set-Up SOLR as a Service
+    Solr Deployment - http://www.francelabs.com/blog/tutorial-deploying-solrcloud-7-on-amazon-ec2/
+    Zookeeper Deployment -  https://www.andrewrowland.com/install-solr-5-and-zookeeper-in-a-production-environment/
+	ZooKeeper Must be Initialized First, then followed by the Solr Instance to run it in Cloud Mode.
+	Configurations can be https://lucene.apache.org/solr/guide/6_6/using-zookeeper-to-manage-configuration-files.html
+
+        ./solr zk -upconfig -z localhost:2181 -n test_configs -d /home/test/Desktop/solr-5.5.5/server/solr/configsets/test_configs
+
+Field and Field Types:
+	https://lucene.apache.org/solr/guide/7_0/solr-field-types.html
+	Only if the field name is defined in the managed-schema , solr accepts the input. If it should Accept any type of input other than field type and ignore it this can be used.
+	<dynamicField name="*" type="ignored" />
+Solr Search Query:
+    https://lucene.apache.org/solr/guide/7_5/common-query-parameters.html
+
+Difference between q and fq: 
+	Fq does not affect the relevance score.
+	https://stackoverflow.com/questions/20988516/difference-between-q-and-fq-in-solr
+Sorting:
+	Sorting a field can be done like this
+
+    <fieldType name="string_ignore_case" class="solr.TextField" sortMissingLast="true" omitNorms="true" >
+      <analyzer>
+        <tokenizer class="solr.KeywordTokenizerFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+      </analyzer>
+    </fieldType>
+
+    <fieldType name="text_autofill" class="solr.TextField" positionIncrementGap="100">
+        <analyzer type="index">
+            <tokenizer class="solr.StandardTokenizerFactory"/>
+            <filter class="solr.StopFilterFactory" words="stopwords.txt"/>
+            <filter class="solr.StandardFilterFactory"/>
+            <filter class="solr.LowerCaseFilterFactory"/>
+            <filter class="solr.EdgeNGramFilterFactory" minGramSize="1" maxGramSize="15" />
+        </analyzer>
+        <analyzer type="query">
+            <tokenizer class="solr.StandardTokenizerFactory"/>
+            <filter class="solr.StopFilterFactory" words="stopwords.txt"/>
+            <filter class="solr.StandardFilterFactory"/>
+            <filter class="solr.LowerCaseFilterFactory"/>
+        </analyzer>
+    </fieldType>
+
+Things To Note: 
+Case is not handled precisely.
+https://lucene.472066.n3.nabble.com/Sorting-fields-of-text-general-fieldType-td3984326.html
+
+Highlighting:
+	https://lucene.apache.org/solr/guide/7_0/highlighting.html
+Faceting:
+	https://lucene.apache.org/solr/guide/7_0/faceting.html
+	Pivoting: 
+		Multi level searching after fixing a parameter
+	“Interval” for custom Ranges and for ranges with specific gap “range” can be used.
+
+Analysers, Filters and Tokenizers:
+    Edge-N Gram Filter:
+        <filter class="solr.EdgeNGramFilterFactory" minGramSize="1" maxGramSize="15" />
+        Keyword / Standard tokenizer takes “-” as a space.
+        For additional Tokenizer options, https://lucene.apache.org/solr/guide/6_6/tokenizers.html
+        For additional filter options, https://lucene.apache.org/solr/guide/6_6/filter-descriptions.html
+API Calls:
+    Solr Instance Mode:
+        Creation of Cores:
+            http://<ip_addr>:8983/solr/admin/cores?action=CREATE&name=<core_name>
+
+            core_name : the collection name to be created.
+            ip_addr : IP of the Solr Instance
+
+            Optional: 
+            numShards
+        Deletion(UNLOAD) of Cores:
+        http://<ip_addr>:8983/solr/admin/cores?action=UNLOAD&core=<core_name>
+
+        core_name : the collection name to be created.
+        ip_addr : IP of the Solr Instance
+
+        Refer for additional options: https://lucene.apache.org/solr/guide/6_6/coreadmin-api.html
+Solr Cloud:
+    Creation of Collection:
+        http://<ip_addr>:8983/solr/admin/collections?action=CREATE&name=<collection_name>&numShards=2&maxShardsPerNode=2&collection.configName=<config_name> 
+        config_name : uploaded in the zookeeper.
+        collection_name : the collection name to be created.
+        ip_addr : IP of the Solr Instance
+
+    Deletion of Collection:
+        http://<ip_addr>:8983/solr/admin/collections?action=DELETE&name=<collection_name>
+
+        collection_name : the collection name to be created.
+        ip_addr : IP of the Solr Instance
+
+        For Additional Options: https://lucene.apache.org/solr/guide/7_3/collections-api.html
+
+Bash Commands:
+    XML Parsing: 
+        https://devhints.io/xpath
+Bash References:
+    https://stackoverflow.com/questions/16365130/what-is-the-difference-between-usr-bin-env-bash-and-usr-bin-bash
+POST TOOL:
+	post -c collection/core -filetypes ppt,html <file_name>
+	Update Extract: 
+
+<requestHandler name="/update/extract"
+                   startup="lazy"
+                   class="solr.extraction.ExtractingRequestHandler" >
+  <lst name="defaults">
+    <str name="lowernames">true</str>
+    <str name="capture">h1</str>
+    <str name="fmap.h1">heading-one</str>
+    <str name="capture">h2</str>
+    <str name="fmap.h2">heading-two</str>
+    <str name="capture">li</str>
+    <str name="fmap.li">listing</str>
+
+  </lst>
+</requestHandler>
+
+<updateRequestProcessorChain name="remove">
+   <processor class="solr.RemoveBlankFieldUpdateProcessorFactory">
+   <lst name="exclude">
+     <str name="fieldRegex">.*_literal</str>
+   </lst>
+ </processor>
+</updateRequestProcessorChain>
+
+Apache Tika:
+	The Custom Parser used with Solr to parse the content and capture the tags individually.
+
+Source Path:
+https://github.com/apache/tika
+HTML5 Support:
+https://issues.apache.org/jira/browse/TIKA-985
+
+To remove a element while parsing:
+Remove it from SAFE_ELEMENTS
+Add it to DISCARDABLE_ELEMENTS
+
+Use this to Support HTML5 Tags to the HTMLSCHEMA in TagSoup Library.
+
+public HtmlParser() {
+        super();
+
+        HTML_SCHEMA.elementType("meta", HTMLSchema.M_EMPTY, 65535, 0);
+
+        String html5Elements[] = { "article", "aside", "audio", "bdi",
+          "command", "datalist", "details", "embed", "summary", "figure",
+          "figcaption", "footer", "header", "hgroup", "keygen", "mark",
+          "meter", "nav", "output", "progress", "section", "source", "time",
+          "track", "video" };
+
+        for (String html5Element : html5Elements) {
+          HTML_SCHEMA.elementType(html5Element, HTMLSchema.M_ANY, 255, 0);
+        }
+   }
+
+
+Faced a Issue with the settings.xml to configure the adobe-public profile, enforcing this profile does not let the packages to be resolved. This Issue is resolved by  removing the settings.xml
+References:
+Solr Deployment - http://www.francelabs.com/blog/tutorial-deploying-solrcloud-7-on-amazon-ec2/
+Zookeeper Deployment -  https://www.andrewrowland.com/install-solr-5-and-zookeeper-in-a-production-environment/
+Core Manipulation - https://lucene.apache.org/solr/guide/6_6/coreadmin-api.html
+Collection Manipulation - https://lucene.apache.org/solr/guide/7_3/collections-api.html
+Managing Configuration FIles in Zookeeper - https://lucene.apache.org/solr/guide/6_6/using-zookeeper-to-manage-configuration-files.html
+Text General does not support sorting - https://stackoverflow.com/questions/7991885/solr-wrong-sort-text-fields
+Multiple Documents in a single upload Issues - https://stackoverflow.com/questions/43197708/expected-object-start-but-got-array-start-at-16
+Difference between q and fq - https://stackoverflow.com/questions/20988516/difference-between-q-and-fq-in-solr
+

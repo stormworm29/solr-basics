@@ -1,0 +1,49 @@
+SOLR Snippets
+
+
+------------------- Snippet 1 :: Managed-Schema -------------------
+<field name="title" type="text_general" indexed="true" stored="true"/>
+<field name="title_sort" type="string" indexed="true" stored="true"/>
+<copyField source="title" dest="title_sort"/>
+------------------- Snippet 2 :: Solrconfig.xml -------------------
+<requestHandler name="/update/extract"
+                   startup="lazy"
+                   class="solr.extraction.ExtractingRequestHandler" >
+  <lst name="defaults">
+    <str name="lowernames">true</str>
+    <str name="capture">p</str>
+    <str name="fmap.p">pdfExtractField</str>
+  </lst>
+</requestHandler>
+------------------- Snippet 3 :: Solrconfig.xml -------------------
+<field name="productName" type="text_custom" indexed="true" stored="true" /> 
+
+<fieldType name="text_custom" class="solr.TextField" positionIncrementGap="100">
+	<analyzer type="index">
+		<tokenizer class="solr.StandardTokenizerFactory"/>
+		<filter class="solr.StandardFilterFactory"/>
+		<filter class="solr.LowerCaseFilterFactory"/>
+		<filter class="solr.NGramFilterFactory" minGramSize="3" maxGramSize="15"/>
+	</analyzer>
+	<analyzer type="query">
+		<tokenizer class="solr.StandardTokenizerFactory"/>
+		<filter class="solr.StandardFilterFactory"/>
+		<filter class="solr.LowerCaseFilterFactory"/>
+	</analyzer>
+</fieldType>
+------------------- Snippet 4 :: Tika Parser :: HTML 5 Support :: HtmlParser.java -------------------
+public HtmlParser() {
+        super();
+
+        HTML_SCHEMA.elementType("meta", HTMLSchema.M_EMPTY, 65535, 0);
+
+        String html5Elements[] = { "article", "aside", "audio", "bdi",
+          "command", "datalist", "details", "embed", "summary", "figure",
+          "figcaption", "footer", "header", "hgroup", "keygen", "mark",
+          "meter", "nav", "output", "progress", "section", "source", "time",
+          "track", "video" };
+
+        for (String html5Element : html5Elements) {
+          HTML_SCHEMA.elementType(html5Element, HTMLSchema.M_ANY, 255, 0);
+        }
+   }

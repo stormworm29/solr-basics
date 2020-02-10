@@ -47,3 +47,14 @@ public HtmlParser() {
           HTML_SCHEMA.elementType(html5Element, HTMLSchema.M_ANY, 255, 0);
         }
    }
+------------------- Snippet 5 :: Custom Request Handler :: Solrconfig.xml -------------------
+
+<requestHandler name="/selectTitle" class="solr.SearchHandler">
+  <lst name="defaults">
+    <str name="echoParams">explicit</str>
+    <int name="rows">10</int>
+    <str name="defType">dismax</str>
+    <str name="q.alt">*:*</str>
+    <str name="qf">title^5 description^2.5 content</str>
+  </lst>
+</requestHandler>
